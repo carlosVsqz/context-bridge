@@ -1,0 +1,92 @@
+# Dokploy: desactiva Isolated Deployments y deja Domains vacío.
+# Este archivo incluye el dominio y las reglas de Traefik.
+
+name: context-bridge
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: contextbridge
+      POSTGRES_USER: ${POSTGRES_USER:-contextbridge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      backend:
+        aliases:
+          - postgres
+    healthcheck:
+      test: "pg_isready -U $$POSTGRES_USER -d contextbridge"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    shm_size: 128mb
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/contextbridge
+      POSTGRES_USER: ${POSTGRES_USER:-contextbridge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@contextbridge.local}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Configura ADMIN_PASSWORD}
+      COOKIE_SECURE: "true"
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      backend: {}
+      dokploy-network: {}
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "${DOKPLOY_NETWORK:-dokploy-network}"
+
+      traefik.http.routers.context-bridge-http.rule: "Host(`context-bridge.escod.com.gt`)"
+      traefik.http.routers.context-bridge-http.entrypoints: web
+      traefik.http.routers.context-bridge-http.middlewares: context-bridge-https
+      traefik.http.routers.context-bridge-http.service: context-bridge-app
+
+      traefik.http.middlewares.context-bridge-https.redirectscheme.scheme: https
+      traefik.http.middlewares.context-bridge-https.redirectscheme.permanent: "true"
+
+      traefik.http.routers.context-bridge.rule: "Host(`context-bridge.escod.com.gt`)"
+      traefik.http.routers.context-bridge.entrypoints: websecure
+      traefik.http.routers.context-bridge.tls: "true"
+      traefik.http.routers.context-bridge.tls.certresolver: "${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      traefik.http.routers.context-bridge.service: context-bridge-app
+
+      traefik.http.services.context-bridge-app.loadbalancer.server.port: "8080"
+    healthcheck:
+      test: "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    name: context-bridge-private
+    driver: bridge
+    internal: true
+
+  dokploy-network:
+    name: ${DOKPLOY_NETWORK:-dokploy-network}
+    external: true
