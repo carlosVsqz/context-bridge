@@ -25,8 +25,8 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Run python3 scripts/init-env.py first}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
-    ports:
-      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    expose:
+      - "8080"
     depends_on:
       postgres:
         condition: service_healthy
