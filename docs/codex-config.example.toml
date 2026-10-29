@@ -1,0 +1,5 @@
+# Optional: direct Codex CLI configuration, separate from JetBrains AI Assistant.
+# Export CONTEXT_BRIDGE_TOKEN privately before starting Codex.
+[mcp_servers.context_bridge]
+url = "https://YOUR-CONTEXT-BRIDGE-HOST/mcp"
+bearer_token_env_var = "CONTEXT_BRIDGE_TOKEN"

@@ -1,0 +1,11 @@
+/.env
+/.env.*
+!/.env.example
+.gradle/
+**/build/
+**/node_modules/
+**/dist/
+**/*.tsbuildinfo
+.idea/
+*.log
+.DS_Store

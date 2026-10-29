@@ -1,0 +1,48 @@
+CREATE TABLE app_users (
+  id UUID PRIMARY KEY,
+  email VARCHAR(254) NOT NULL UNIQUE,
+  display_name VARCHAR(120) NOT NULL,
+  password_hash VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE projects (
+  id UUID PRIMARY KEY,
+  slug VARCHAR(80) NOT NULL UNIQUE,
+  name VARCHAR(120) NOT NULL,
+  description VARCHAR(1000) NOT NULL DEFAULT '',
+  repository_url VARCHAR(500) NOT NULL DEFAULT '',
+  summary TEXT NOT NULL DEFAULT '',
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE context_entries (
+  id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(id),
+  kind VARCHAR(20) NOT NULL CHECK (kind IN ('CHECKPOINT', 'DECISION', 'NOTE')),
+  title VARCHAR(160) NOT NULL,
+  content TEXT NOT NULL,
+  environment VARCHAR(100) NOT NULL DEFAULT '',
+  branch VARCHAR(200) NOT NULL DEFAULT '',
+  git_commit VARCHAR(64) NOT NULL DEFAULT '',
+  author VARCHAR(254) NOT NULL,
+  revision BIGINT NOT NULL,
+  request_id UUID NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(project_id, request_id),
+  UNIQUE(project_id, revision)
+);
+CREATE INDEX idx_entries_project_created ON context_entries(project_id, created_at DESC);
+CREATE TABLE api_tokens (
+  id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(id),
+  name VARCHAR(100) NOT NULL,
+  prefix VARCHAR(20) NOT NULL,
+  token_hash VARCHAR(64) NOT NULL UNIQUE,
+  permission VARCHAR(10) NOT NULL CHECK (permission IN ('READ', 'WRITE')),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  revoked_at TIMESTAMP WITH TIME ZONE,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_tokens_project ON api_tokens(project_id);

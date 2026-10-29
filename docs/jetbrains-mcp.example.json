@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "context-bridge": {
+      "type": "streamable-http",
+      "url": "https://YOUR-CONTEXT-BRIDGE-HOST/mcp",
+      "headers": {
+        "Authorization": "Bearer REPLACE_WITH_YOUR_PROJECT_TOKEN"
+      }
+    }
+  }
+}
